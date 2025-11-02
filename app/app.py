@@ -5,6 +5,7 @@ from streamlit_drawable_canvas import st_canvas
 from PIL import Image, ImageOps
 import gzip
 import io
+import os
 
 # =====================================
 # Load Keras Model (.h5.gz)
