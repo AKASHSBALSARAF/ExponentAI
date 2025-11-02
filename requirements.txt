@@ -1,5 +1,5 @@
 streamlit
 tensorflow
-numpy
-opencv-python
+streamlit-drawable-canvas
 pillow
+numpy
