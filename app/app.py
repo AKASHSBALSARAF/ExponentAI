@@ -13,11 +13,25 @@ import os
 
 @st.cache_resource
 def load_model():
-    """Load and cache the TensorFlow model from a compressed .gz file."""
+    """Load TensorFlow model from local .gz file or download from GitHub if not found."""
     try:
-        MODEL_PATH = os.path.join(os.path.dirname(__file__), "model", "exponent_recognition_model.h5.gz")
+        MODEL_DIR = os.path.join(os.path.dirname(__file__), "model")
+        MODEL_PATH = os.path.join(MODEL_DIR, "exponent_recognition_model.h5.gz")
+        GITHUB_URL = "https://github.com/AKASHSBALSARAF/ExponentAI/raw/main/model/exponent_recognition_model.h5.gz"
 
-        # Decompress the .gz file into a temporary .h5 file
+
+        os.makedirs(MODEL_DIR, exist_ok=True)
+
+
+        if not os.path.exists(MODEL_PATH):
+            st.warning("📥 Model not found locally. Downloading from GitHub...")
+            response = requests.get(GITHUB_URL)
+            response.raise_for_status()
+            with open(MODEL_PATH, "wb") as f:
+                f.write(response.content)
+            st.success("✅ Model downloaded successfully!")
+
+ 
         with gzip.open(MODEL_PATH, "rb") as f_in:
             decompressed = f_in.read()
 
@@ -25,21 +39,17 @@ def load_model():
             temp_file.write(decompressed)
             temp_path = temp_file.name
 
-
         model = tf.keras.models.load_model(temp_path)
 
-
-        os.remove(temp_path)
-
+        os.remove(temp_path)  
         return model
 
     except Exception as e:
         st.error(f"⚠️ Model could not be loaded: {e}")
         st.stop()
 
-# Load model once (cached)
+# Load model (cached)
 model = load_model()
-
 # =====================================
 # Prediction function
 # =====================================
