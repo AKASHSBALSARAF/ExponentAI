@@ -40,22 +40,24 @@ def preprocess(image):
     """
     Preprocess drawn image for prediction.
     - Convert to grayscale
-    - Invert colors (white bg, black text)
-    - Resize and normalize
-    - Add channel dimension
+    - Invert colors (canvas draws white on black)
+    - Center and normalize
+    - Resize to 64x64
     """
     try:
         # Convert to grayscale
         image = image.convert("L")
 
-        # Invert colors (canvas draws white on black)
+        # Invert colors (white background, black text)
         image = Image.eval(image, lambda x: 255 - x)
 
-        # Resize to match model input
+        # Resize to 64x64
         image = image.resize((64, 64))
 
-        # Convert to numpy, normalize and reshape
-        img_array = np.array(image) / 255.0
+        # Convert to array and normalize
+        img_array = np.array(image, dtype=np.float32) / 255.0
+
+        # Add batch and channel dims
         img_array = img_array.reshape(1, 64, 64, 1)
 
         return img_array
