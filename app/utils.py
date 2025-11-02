@@ -1,51 +1,29 @@
-# app/utils.py
-
-import tensorflow as tf
 import numpy as np
 from PIL import Image, ImageOps
-from huggingface_hub import hf_hub_download
-import streamlit as st
-
-@st.cache_resource
-def load_model():
-    """
-    Loads the trained model from Hugging Face Hub.
-    """
-    try:
-        model_path = hf_hub_download(
-            repo_id="AkashSBalsaraf/ExponentAI-Model",
-            filename="exponent_recognition_model.h5"
-        )
-        model = tf.keras.models.load_model(model_path)
-        return model
-    except Exception as e:
-        st.error(f"⚠️ Could not load model: {e}")
-        st.stop()
-
 
 def preprocess_image(image):
     """
-    Preprocess the drawn image for model prediction.
-    - Converts to grayscale
-    - Inverts colors
-    - Resizes to 28x28
-    - Normalizes pixel values
+    Converts an RGBA image from the drawing canvas into the model's required input format.
+    Output shape: (1, 28, 28, 1)
     """
-    image = image.convert("L")  # Grayscale
-    image = ImageOps.invert(image)
-    image = image.resize((28, 28))
-    img_array = np.array(image) / 255.0
-    img_array = img_array.reshape(1, 28, 28, 1)
-    return img_array
+    try:
+        # Convert RGBA → grayscale
+        image = image.convert("L")
 
+        # Invert colors so drawn digit is dark on light
+        image = ImageOps.invert(image)
 
-def predict_digit(model, image):
-    """
-    Runs inference on the preprocessed image using the trained model.
-    Returns predicted class and confidence.
-    """
-    img_array = preprocess_image(image)
-    predictions = model.predict(img_array)
-    pred_class = np.argmax(predictions)
-    confidence = np.max(predictions)
-    return pred_class, confidence
+        # Resize to match training shape
+        image = image.resize((28, 28))
+
+        # Convert to numpy array and normalize
+        img_array = np.array(image).astype("float32") / 255.0
+
+        # Reshape to model input shape (1, 28, 28, 1)
+        img_array = np.expand_dims(img_array, axis=(0, -1))
+
+        return img_array
+
+    except Exception as e:
+        print(f"[Error] Image preprocessing failed: {e}")
+        return None
