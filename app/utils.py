@@ -31,7 +31,7 @@ def load_model():
             tmp.write(response.content)
             tmp_path = tmp.name
 
-        model = tf.keras.models.load_model(tmp_path
+        model = tf.keras.models.load_model(tmp_path)
 
 
 def preprocess(image):
