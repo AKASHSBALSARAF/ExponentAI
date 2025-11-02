@@ -9,37 +9,54 @@ import io
 # =====================================
 # Load Keras Model (.h5.gz)
 # =====================================
+
 @st.cache_resource
 def load_model():
+    """Load and cache the TensorFlow model from a compressed .gz file."""
     try:
-        with gzip.open("model/exponent_recognition_model.h5.gz", "rb") as f:
-            model_bytes = f.read()
-        model = tf.keras.models.load_model(io.BytesIO(model_bytes))
+        MODEL_PATH = os.path.join(os.path.dirname(__file__), "model", "exponent_recognition_model.h5.gz")
+
+        # Decompress the .gz file into a temporary .h5 file
+        with gzip.open(MODEL_PATH, "rb") as f_in:
+            decompressed = f_in.read()
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as temp_file:
+            temp_file.write(decompressed)
+            temp_path = temp_file.name
+
+
+        model = tf.keras.models.load_model(temp_path)
+
+
+        os.remove(temp_path)
+
         return model
+
     except Exception as e:
         st.error(f"⚠️ Model could not be loaded: {e}")
         st.stop()
 
+# Load model once (cached)
 model = load_model()
 
 # =====================================
 # Prediction function
 # =====================================
 def predict_digit(image):
-    # Convert RGBA → grayscale
+
     img = image.convert("L")
 
-    # Invert dynamically if needed
+
     np_img = np.array(img)
     if np.mean(np_img) > 127:
         img = ImageOps.invert(img)
 
-    # Resize & normalize
+
     img = img.resize((28, 28))
     img_array = np.array(img, dtype=np.float32) / 255.0
     img_array = img_array.reshape(1, 28, 28, 1)
 
-    # Predict
+
     try:
         preds = model.predict(img_array, verbose=0)
         pred_class = int(np.argmax(preds))
@@ -85,7 +102,7 @@ with col1:
 
 with col2:
     if st.button("Clear Canvas"):
-        st.rerun()  # ✅ modern replacement for experimental_rerun()
+        st.rerun() 
 
 st.markdown("---")
 st.caption("Built with Streamlit • TensorFlow • Handwritten Exponent Model")
