@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow.lite as tflite
 from PIL import Image, ImageOps
 import io
-
+import os
 # ---------------------------
 # Page Config
 # ---------------------------
@@ -26,7 +26,8 @@ The model will predict the value or notify if the input cannot be recognized.
 # ---------------------------
 @st.cache_resource
 def load_model():
-    interpreter = tflite.Interpreter(model_path="model/exponent_recognition_model.tflite")
+    model_path = os.path.join(os.path.dirname(__file__), "../model/exponent_recognition_model.tflite")
+    interpreter = tflite.Interpreter(model_path=model_path)
     interpreter.allocate_tensors()
     return interpreter
 
