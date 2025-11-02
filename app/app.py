@@ -1,8 +1,8 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
-import streamlit_drawable_canvas as st_canvas
-from utils import load_model, preprocess  #  absolute import
+from streamlit_drawable_canvas import st_canvas
+from utils import load_model, preprocess
 
 st.set_page_config(page_title="Exponent AI", layout="wide")
 
