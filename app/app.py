@@ -21,7 +21,7 @@ canvas_result = st_canvas(
     width=280,
     height=280,
     drawing_mode="freedraw",
-    key="canvas"
+    key=f"canvas_{st.session_state.get('canvas_key', 0)}" 
 )
 
 col1, col2 = st.columns(2)
@@ -42,8 +42,8 @@ with col1:
             st.warning("Please draw something first!")
 
 with col2:
-    if st.button("Clear Canvas"):
-        st.session_state["canvas"] = None
+    if st.button("🧹 Clear Canvas"):
+        st.session_state["canvas_key"] = st.session_state.get("canvas_key", 0) + 1
         st.rerun()
 
 st.markdown("---")
