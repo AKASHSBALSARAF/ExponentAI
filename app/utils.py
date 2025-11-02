@@ -25,32 +25,32 @@ def load_model():
             tmp.write(response.content)
             tmp_path = tmp.name
 
-        # Load model from actual file path
+        # Load model from file path (NOT BytesIO)
         model = tf.keras.models.load_model(tmp_path)
 
-        st.success(" Model loaded successfully!")
+        st.success("✅ Model loaded successfully!")
         return model
 
     except Exception as e:
-        st.error(f" Model could not be loaded: {e}")
+        st.error(f"❌ Model could not be loaded: {e}")
         st.stop()
 
 
 def preprocess(image):
     """
     Preprocess the drawn image for prediction.
-    Converts to grayscale, resizes to 28x28, and normalizes.
+    Converts to grayscale, resizes to 64x64, normalizes, and reshapes.
     """
     try:
         # Convert to grayscale
         image = image.convert("L")
 
-        # Resize to match model input
-        image = image.resize((28, 28))
+        #Resize to match model input (64×64)
+        image = image.resize((64, 64))
 
         # Convert to numpy and normalize
         img_array = np.array(image) / 255.0
-        img_array = img_array.reshape(1, 28, 28, 1)
+        img_array = img_array.reshape(1, 64, 64, 1)
 
         return img_array
 
