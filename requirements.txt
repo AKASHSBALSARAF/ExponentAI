@@ -1,7 +1,5 @@
 streamlit
-tensorflow
+tensorflow-cpu
 numpy
 pillow
-opencv-python
 streamlit-drawable-canvas
-os
