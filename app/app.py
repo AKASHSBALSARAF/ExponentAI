@@ -6,6 +6,7 @@ from PIL import Image, ImageOps
 import gzip
 import io
 import os
+import requests
 
 # =====================================
 # Load Keras Model (.h5.gz)
