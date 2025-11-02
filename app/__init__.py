@@ -1,10 +1,4 @@
-# app/__init__.py
+# Makes 'app' a package and re-exports utilities
+from .utils import load_model, preprocess
 
-"""
-ExponentAI App Package
-----------------------
-Contains the Streamlit interface and utility functions
-for the Handwritten Exponent Recognition project.
-"""
-
-__version__ = "1.0.0"
+__all__ = ["load_model", "preprocess"]
