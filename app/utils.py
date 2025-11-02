@@ -1,29 +1,24 @@
+import tensorflow as tf
 import numpy as np
-from PIL import Image, ImageOps
+import cv2
+from PIL import Image
+import requests
+from io import BytesIO
+import streamlit as st
 
-def preprocess_image(image):
-    """
-    Converts an RGBA image from the drawing canvas into the model's required input format.
-    Output shape: (1, 28, 28, 1)
-    """
-    try:
-        # Convert RGBA → grayscale
-        image = image.convert("L")
+@st.cache_resource
+def load_model():
+    url = "https://huggingface.co/AkashSBalsaraf/ExponentAI-Model/resolve/main/exponent_recognition_model.h5"
+    response = requests.get(url)
+    response.raise_for_status()
+    model = tf.keras.models.load_model(BytesIO(response.content))
+    return model
 
-        # Invert colors so drawn digit is dark on light
-        image = ImageOps.invert(image)
-
-        # Resize to match training shape
-        image = image.resize((28, 28))
-
-        # Convert to numpy array and normalize
-        img_array = np.array(image).astype("float32") / 255.0
-
-        # Reshape to model input shape (1, 28, 28, 1)
-        img_array = np.expand_dims(img_array, axis=(0, -1))
-
-        return img_array
-
-    except Exception as e:
-        print(f"[Error] Image preprocessing failed: {e}")
-        return None
+def preprocess(image_data):
+    img = Image.open(image_data).convert("L")
+    img = img.resize((28, 28))
+    img_array = np.array(img)
+    img_array = 255 - img_array
+    img_array = img_array / 255.0
+    img_array = img_array.reshape(1, 28, 28, 1)
+    return img_array
