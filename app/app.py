@@ -11,7 +11,7 @@ st.title("✍️ Exponent AI – Handwritten Exponent Recognition")
 # Load model from Hugging Face
 model = load_model()
 
-st.markdown("Draw an **exponent (power)** below 👇")
+st.markdown("Draw an **expression (like 3⁷)** below 👇")
 
 canvas_result = st_canvas(
     fill_color="black",
@@ -21,7 +21,7 @@ canvas_result = st_canvas(
     width=280,
     height=280,
     drawing_mode="freedraw",
-    key=f"canvas_{st.session_state.get('canvas_key', 0)}" 
+    key=f"canvas_{st.session_state.get('canvas_key', 0)}"
 )
 
 col1, col2 = st.columns(2)
@@ -32,12 +32,18 @@ else:
     img = None
 
 with col1:
-    if st.button("Predict"):
+    if st.button("🔍 Predict"):
         if img:
             x = preprocess(img)
-            preds = model.predict(x)
-            pred_class = np.argmax(preds)
-            st.success(f"🔢 Predicted Exponent: **{pred_class}**")
+            if x is not None:
+                preds = model.predict(x)
+                # Since your model has two outputs
+                base_pred, exp_pred = preds
+                base_class = np.argmax(base_pred)
+                exp_class = np.argmax(exp_pred)
+                st.success(f"**Predicted Base Digit:** {base_class}\n\n**Predicted Exponent Digit:** {exp_class}")
+            else:
+                st.warning("⚠️ Image preprocessing failed.")
         else:
             st.warning("Please draw something first!")
 
