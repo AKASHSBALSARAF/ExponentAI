@@ -1,101 +1,86 @@
 import streamlit as st
 import numpy as np
-import tensorflow.lite as tflite
+import tensorflow as tf
 from PIL import Image, ImageOps
 import io
-import os
-# ---------------------------
-# Page Config
-# ---------------------------
-st.set_page_config(
-    page_title="Handwritten Exponent Recognition",
-    page_icon="∧",
-    layout="centered",
-)
+import cv2
 
-st.title("Handwritten Exponent Recognition")
-st.markdown(
-    """
-Upload or draw a handwritten exponent.  
-The model will predict the value or notify if the input cannot be recognized.
-"""
-)
-
-# ---------------------------
-# Loading tensorflowlite
-# ---------------------------
+# -------------------------------------------------------
+# Load model (cached for performance)
+# -------------------------------------------------------
 @st.cache_resource
 def load_model():
-    model_path = os.path.join(os.path.dirname(__file__), "../model/exponent_recognition_model.tflite")
-    interpreter = tflite.Interpreter(model_path=model_path)
+    interpreter = tf.lite.Interpreter(model_path="model/exponent_recognition_model.tflite")
     interpreter.allocate_tensors()
     return interpreter
 
 interpreter = load_model()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
 
-# ---------------------------
-# Here's the Drawing Canvas
-# ---------------------------
-from streamlit_drawable_canvas import st_canvas
-
-st.subheader("Draw your exponent below:")
-canvas_result = st_canvas(
-    fill_color="#000000",
-    stroke_width=12,
-    stroke_color="#FFFFFF",
-    background_color="#000000",
-    height=200,
-    width=200,
-    drawing_mode="freedraw",
-    key="canvas",
-)
-
-# ---------------------------
-# Finally Prediction Function
-# ---------------------------
-def predict_image(image: Image.Image):
-    # Convert to grayscale and resize to match model input
+# -------------------------------------------------------
+# Helper: Predict function
+# -------------------------------------------------------
+def predict_digit(image):
+    # Convert image to grayscale, resize, and normalize
     image = image.convert("L")
     image = ImageOps.invert(image)
     image = image.resize((28, 28))
-    img_array = np.array(image, dtype=np.float32) / 255.0
+    img_array = np.array(image).astype(np.float32) / 255.0
     img_array = img_array.reshape(1, 28, 28, 1)
 
-    # Run inference
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
     interpreter.set_tensor(input_details[0]['index'], img_array)
     interpreter.invoke()
-    output_data = interpreter.get_tensor(output_details[0]['index'])
-    prediction = np.argmax(output_data)
-    confidence = np.max(output_data)
+    prediction = interpreter.get_tensor(output_details[0]['index'])
+    pred_class = np.argmax(prediction)
+    confidence = np.max(prediction)
 
-    if confidence < 0.6:
-        return None
-    return prediction
+    return pred_class, confidence
 
-# ---------------------------
-# Submiting & Display Results
-# ---------------------------
-if st.button("Predict"):
-    if canvas_result.image_data is not None:
-        # Convert canvas to PIL image
-        image = Image.fromarray((canvas_result.image_data[:, :, :3] * 255).astype(np.uint8))
-        pred = predict_image(image)
-        if pred is not None:
-            st.success(f"Predicted Exponent: {pred}")
-        else:
-            st.warning("Try again — input not recognized.")
-    else:
-        st.info("Please draw something to predict.")
+# -------------------------------------------------------
+# Streamlit UI
+# -------------------------------------------------------
+st.set_page_config(page_title="Exponent Recognition", layout="centered")
 
-# ---------------------------
-# footer
-# ---------------------------
-st.markdown(
-    """
----
-**Model:** Custom CNN trained for handwritten exponent recognition  
-**Developer:** Akash S. Balsaraf
-"""
+st.title("🧮 Exponent Recognition")
+st.markdown("---")
+
+st.write("Draw a mathematical exponent or digit below. The model will recognize it.")
+
+canvas_result = st.canvas(
+    fill_color="white",
+    stroke_width=8,
+    stroke_color="black",
+    background_color="white",
+    width=280,
+    height=280,
+    drawing_mode="freedraw",
+    key="canvas"
 )
+
+col1, col2 = st.columns([1, 1])
+
+if canvas_result.image_data is not None:
+    image = Image.fromarray((canvas_result.image_data[:, :, :3]).astype(np.uint8))
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    buf.seek(0)
+
+    with col1:
+        st.image(image, caption="Your Drawing", use_container_width=True)
+
+    if st.button("Predict", use_container_width=True):
+        pred_class, confidence = predict_digit(image)
+
+        with col2:
+            if confidence > 0.75:
+                st.success(f"Recognized as: **{pred_class}** (Confidence: {confidence:.2f})")
+            else:
+                st.warning("Try again — input unclear or not recognized.")
+
+else:
+    st.info("Draw something above to begin.")
+
+st.markdown("---")
+st.caption("Built by Akash S. Balsaraf — ExponentAI (2025)")
