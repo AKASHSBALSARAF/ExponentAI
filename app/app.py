@@ -3,47 +3,47 @@ import numpy as np
 import tensorflow as tf
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image, ImageOps
+import gzip
+import io
 
 # =====================================
-# Load TFLite model (cached for speed)
+# Load Keras Model (.h5.gz)
 # =====================================
 @st.cache_resource
 def load_model():
     try:
-        interpreter = tf.lite.Interpreter(model_path="model/exponent_recognition_model.tflite")
-        interpreter.allocate_tensors()
-        return interpreter
+        with gzip.open("model/exponent_recognition_model.h5.gz", "rb") as f:
+            model_bytes = f.read()
+        model = tf.keras.models.load_model(io.BytesIO(model_bytes))
+        return model
     except Exception as e:
-        st.error("Model could not be loaded. Please verify the file path and name.")
+        st.error(f"⚠️ Model could not be loaded: {e}")
         st.stop()
 
-interpreter = load_model()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+model = load_model()
 
 # =====================================
 # Prediction function
 # =====================================
 def predict_digit(image):
-    # Convert RGBA to grayscale
+    # Convert RGBA → grayscale
     img = image.convert("L")
 
-    # Invert only if background is dark
+    # Invert dynamically if needed
     np_img = np.array(img)
     if np.mean(np_img) > 127:
         img = ImageOps.invert(img)
 
-    # Resize to 28x28 and normalize
+    # Resize & normalize
     img = img.resize((28, 28))
     img_array = np.array(img, dtype=np.float32) / 255.0
     img_array = img_array.reshape(1, 28, 28, 1)
 
+    # Predict
     try:
-        interpreter.set_tensor(input_details[0]['index'], img_array)
-        interpreter.invoke()
-        output_data = interpreter.get_tensor(output_details[0]['index'])
-        pred_class = int(np.argmax(output_data))
-        confidence = float(np.max(output_data))
+        preds = model.predict(img_array, verbose=0)
+        pred_class = int(np.argmax(preds))
+        confidence = float(np.max(preds))
         return pred_class, confidence
     except Exception:
         return None, None
@@ -52,7 +52,7 @@ def predict_digit(image):
 # Streamlit UI
 # =====================================
 st.set_page_config(page_title="Exponent Recognition", layout="centered")
-st.title("Exponent Recognition")
+st.title("🧮 Exponent Recognition (Keras Model)")
 st.markdown("Draw an exponent (like 2, 3, x²) inside the box below and click **Predict**.")
 
 canvas_result = st_canvas(
@@ -76,9 +76,8 @@ with col1:
             )
             pred_class, confidence = predict_digit(image)
 
-            if pred_class is not None and confidence > 0.6:
-                st.subheader(f"Prediction: {pred_class}")
-                st.write(f"Confidence: {confidence:.2f}")
+            if pred_class is not None and confidence > 0.5:
+                st.success(f"Prediction: **{pred_class}**  \nConfidence: `{confidence:.2f}`")
             else:
                 st.warning("Try again — cannot recognize input.")
         else:
@@ -86,7 +85,7 @@ with col1:
 
 with col2:
     if st.button("Clear Canvas"):
-        st.rerun()
+        st.rerun()  # ✅ modern replacement for experimental_rerun()
 
 st.markdown("---")
-st.caption("Built with TensorFlow Lite • Streamlit • Handwritten Exponent Dataset")
+st.caption("Built with Streamlit • TensorFlow • Handwritten Exponent Model")
