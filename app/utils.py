@@ -38,17 +38,23 @@ def load_model():
 
 def preprocess(image):
     """
-    Preprocess the drawn image for prediction.
-    Converts to grayscale, resizes to 64x64, normalizes, and reshapes.
+    Preprocess drawn image for prediction.
+    - Convert to grayscale
+    - Invert colors (white bg, black text)
+    - Resize and normalize
+    - Add channel dimension
     """
     try:
         # Convert to grayscale
         image = image.convert("L")
 
-        #Resize to match model input (64×64)
+        # Invert colors (canvas draws white on black)
+        image = Image.eval(image, lambda x: 255 - x)
+
+        # Resize to match model input
         image = image.resize((64, 64))
 
-        # Convert to numpy and normalize
+        # Convert to numpy, normalize and reshape
         img_array = np.array(image) / 255.0
         img_array = img_array.reshape(1, 64, 64, 1)
 
