@@ -5,24 +5,33 @@ import requests
 import io
 from PIL import Image
 
-MODEL_URL = "https://huggingface.co/AkashSBalsaraf/ExponentAI-Model/blob/main/exponent_recognition_model.h5"
-
+import streamlit as st
+import tensorflow as tf
+import numpy as np
+import tempfile
+import requests
+from PIL import Image
 
 @st.cache_resource
 def load_model():
+    """
+    Downloads the model from Hugging Face and loads it into memory.
+    Cached for reuse across sessions.
+    """
     try:
-        # Download model from Hugging Face
-        response = requests.get(MODEL_URL)
+        HF_URL = "https://huggingface.co/AkashSBalsaraf/ExponentAI-Model/resolve/main/exponent_recognition_model.h5"
+
+        st.info("🔄 Loading model from Hugging Face... Please wait.")
+
+        # Download model to a temporary file
+        response = requests.get(HF_URL)
         response.raise_for_status()
 
-        # Load model directly from memory
-        model_bytes = io.BytesIO(response.content)
-        model = tf.keras.models.load_model(model_bytes)
-        st.success("✅ Model loaded successfully from Hugging Face!")
-        return model
-    except Exception as e:
-        st.error(f"⚠️ Model could not be loaded: {e}")
-        st.stop()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tmp:
+            tmp.write(response.content)
+            tmp_path = tmp.name
+
+        model = tf.keras.models.load_model(tmp_path
 
 
 def preprocess(image):
