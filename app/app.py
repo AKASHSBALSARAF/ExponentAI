@@ -3,10 +3,11 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image, ImageOps
 import io
-import cv2
+
+from streamlit_drawable_canvas import st_canvas
 
 # -------------------------------------------------------
-# Load model (cached for performance)
+# Load model
 # -------------------------------------------------------
 @st.cache_resource
 def load_model():
@@ -17,10 +18,9 @@ def load_model():
 interpreter = load_model()
 
 # -------------------------------------------------------
-# Helper: Predict function
+# Prediction function
 # -------------------------------------------------------
 def predict_digit(image):
-    # Convert image to grayscale, resize, and normalize
     image = image.convert("L")
     image = ImageOps.invert(image)
     image = image.resize((28, 28))
@@ -29,13 +29,12 @@ def predict_digit(image):
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-
     interpreter.set_tensor(input_details[0]['index'], img_array)
     interpreter.invoke()
+
     prediction = interpreter.get_tensor(output_details[0]['index'])
     pred_class = np.argmax(prediction)
     confidence = np.max(prediction)
-
     return pred_class, confidence
 
 # -------------------------------------------------------
@@ -43,12 +42,12 @@ def predict_digit(image):
 # -------------------------------------------------------
 st.set_page_config(page_title="Exponent Recognition", layout="centered")
 
-st.title("🧮 Exponent Recognition")
-st.markdown("---")
+st.title("Exponent Recognition")
+st.markdown("Draw an exponent or digit below. The model will recognize it.")
+st.divider()
 
-st.write("Draw a mathematical exponent or digit below. The model will recognize it.")
-
-canvas_result = st.canvas(
+# Drawing canvas
+canvas_result = st_canvas(
     fill_color="white",
     stroke_width=8,
     stroke_color="black",
@@ -59,28 +58,18 @@ canvas_result = st.canvas(
     key="canvas"
 )
 
-col1, col2 = st.columns([1, 1])
-
 if canvas_result.image_data is not None:
     image = Image.fromarray((canvas_result.image_data[:, :, :3]).astype(np.uint8))
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    buf.seek(0)
+    st.image(image, caption="Your Drawing", use_container_width=True)
 
-    with col1:
-        st.image(image, caption="Your Drawing", use_container_width=True)
-
-    if st.button("Predict", use_container_width=True):
+    if st.button("Predict"):
         pred_class, confidence = predict_digit(image)
-
-        with col2:
-            if confidence > 0.75:
-                st.success(f"Recognized as: **{pred_class}** (Confidence: {confidence:.2f})")
-            else:
-                st.warning("Try again — input unclear or not recognized.")
-
+        if confidence > 0.75:
+            st.success(f"Recognized as: **{pred_class}** (Confidence: {confidence:.2f})")
+        else:
+            st.warning("Try again — input unclear or not recognized.")
 else:
-    st.info("Draw something above to begin.")
+    st.info("Draw something above to start.")
 
-st.markdown("---")
+st.divider()
 st.caption("Built by Akash S. Balsaraf — ExponentAI (2025)")
